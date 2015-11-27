@@ -1,0 +1,4 @@
+[package]
+name = "nsq"
+version = "0.1.0"
+authors = ["Jon Morehouse <morehousej09@gmail.com>"]
