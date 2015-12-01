@@ -1,29 +1,34 @@
-//use std::thread;
+use std::thread;
+use std::sync::mpsc;
+use std::thread::sleep;
+use std::time::Duration;
 
-struct Config {
-    nsqd_tcp_addresses: String,
-}
+use config::Config;
+use connection::Connection;
 
 // The producer class uses the TCP connection aspect of NSQ
-struct Producer {
-    config: Config,
+pub struct Producer<'a> {
+    config: &'a Config,
+    connection: Connection<'a>,
 }
 
-impl Producer {
-
-    fn new() -> Producer {
-        Producer {
-            config: Config{
-                nsqd_tcp_addresses: "asdf".to_string(),
-            }
-        }
+impl <'a> Producer<'a> {
+    pub fn new(config: &'a Config) -> Producer<'a> {
+        let p = Producer {
+            config: config,
+            connection: Connection::new(config),
+        };
+        p
     }
+
+    //pub fn publish(&mut self) -> mpsc::Receiver<Result<i8, bool>> {
+
+    //}
+
+    //pub fn publish(&mut self) -> mpsc::Receiver<i32> {
+        //self.connection.connect();
+
+    //}
 }
 
-pub fn new_producer() {
-    let p = Producer::new();
-    println!("{} test.", p.config.nsqd_tcp_addresses);
-    //println!(p.config.nsqd_tcp_addresses);
-
-}
 

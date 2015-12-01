@@ -1,5 +1,6 @@
+extern crate nsq;
+
 #[test]
-fn hi_there() {
-    assert!(false);
-    //assert_eq!("hello", "world");
+fn producer_pub_test() {
+
 }
