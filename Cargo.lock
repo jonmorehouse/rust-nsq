@@ -1,0 +1,4 @@
+[root]
+name = "nsq"
+version = "0.0.1"
+
