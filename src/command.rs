@@ -23,8 +23,12 @@ pub struct Command {
     pub bytes: Vec<u8>,
 }
 
+trait HasData {
+    fn data(self) -> Vec<u8>;
+}
+
 trait HasResponse {
-    fn response_type(&self) -> ResponseType;
+    fn response_type(self) -> ResponseType;
     fn respond(&self);
 }
 
@@ -46,17 +50,26 @@ impl Command {
         (command, receiver)
     }
 
-    pub fn respond(&self) {
-        self.sender.send(Response{t: true});
-    }
-
-    pub fn response_type(self) -> ResponseType {
-        self.response_type
-    }
-
     pub fn version() -> (Command, Receiver<Response>) {
         let (mut command, receiver) = Command::new_from_string("  V2".to_string());
         (command, receiver)
+    }
+}
+
+impl HasData for Command {
+    // TODO share a scoped reference here
+    fn data(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+impl HasResponse for Command {
+    fn respond(&self) {
+        self.sender.send(Response{t: true});
+    }
+
+    fn response_type(self) -> ResponseType {
+        self.response_type
     }
 }
 
@@ -101,23 +114,23 @@ impl ProtocolCommand {
             response_type: ResponseType::SizePrefixed,
         }
     }
+}
 
-    pub fn identify() -> (Command, Receiver<Response>) {
-        let identify = "IDENTIFY\n{\"client_id\": \"test\"}";
-        let (mut command, receiver) = Command::new_from_string(identify.to_string());
-        
-        (command, receiver)
+impl fmt::Display for ProtocolCommand {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let string = String::from_utf8(self.bytes.clone()).unwrap();
+        write!(f, "{}", string)
     }
 }
 
-//impl fmt::Display for ProtocolCommand {
-    //fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        //write!(f, "{}", String::from_utf8(self.bytes).unwrap())
-    //}
-//}
-
 #[test]
 fn test_protocol_command() {
-    let protocolCommand = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string());
+    let protocol_command = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string());
+    println!("{}", protocol_command);
 }
 
+#[test]
+fn test_protocol_command_traits() {
+    let protocol_command = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "".to_string());
+    println!("{}", protocol_command);
+}

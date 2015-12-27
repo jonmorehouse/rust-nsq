@@ -40,7 +40,7 @@ impl Connection {
         loop {
             match receiver.recv() {
                 Ok(command) => {
-                    command.respond();
+                    //stream.write(&command.data());
                     //stream.write(&command.bytes);
                 },
                 Err(e) => {
