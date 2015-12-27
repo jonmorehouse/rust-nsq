@@ -4,3 +4,5 @@ name = "nsq"
 version = "0.0.1"
 authors = [ "Jon Morehouse <morehousej09@gmail.com>" ]
 
+[dependencies]
+byteorder = "0.4.2"
