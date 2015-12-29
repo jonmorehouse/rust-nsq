@@ -18,16 +18,15 @@ pub struct Response {
 
 pub struct Command {
     response_type: ResponseType,
-    success: bool,
     sender: Sender<Response>,
     pub bytes: Vec<u8>,
 }
 
-trait HasData {
+pub trait HasData {
     fn data(self) -> Vec<u8>;
 }
 
-trait HasResponse {
+pub trait HasResponse {
     fn response_type(self) -> ResponseType;
     fn respond(&self);
 }
@@ -43,7 +42,6 @@ impl Command {
         let command = Command{
             response_type: ResponseType::Empty,
             sender: sender.clone(),
-            success: true,
             bytes: bytes,
         };
 
@@ -77,13 +75,15 @@ pub struct ProtocolCommand {
     // a protocol command is a command which adheres to the NSQ protocol. These sorts of commands
     // use JSON
     response_type: ResponseType,
+    sender: Sender<Response>,
     pub bytes: Vec<u8>,
 }
 
 impl ProtocolCommand {
-    fn new(command: String, params: String, data: String) -> ProtocolCommand {
+    pub fn new(command: String, params: String, data: String) -> (ProtocolCommand, Receiver<Response>) {
+        // TODO: clean up this function
         let mut buffer: Vec<u8> = Vec::new();
-        
+
         for byte in command.into_bytes() {
             buffer.push(byte);
         }
@@ -109,10 +109,34 @@ impl ProtocolCommand {
             }
         }
 
-        ProtocolCommand{
+        let (sender, receiver) = channel::<Response>();
+        let command = ProtocolCommand{
+            sender: sender,
             bytes: buffer,
             response_type: ResponseType::SizePrefixed,
-        }
+        };
+
+        (command, receiver)
+    }
+
+    pub fn identify() -> (ProtocolCommand, Receiver<Response>) {
+        ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string())
+    }
+}
+
+impl HasData for ProtocolCommand {
+    fn data(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+impl HasResponse for ProtocolCommand {
+    fn respond(&self) {
+        self.sender.send(Response{t: true});
+    }
+
+    fn response_type(self) -> ResponseType {
+        self.response_type
     }
 }
 
@@ -125,12 +149,12 @@ impl fmt::Display for ProtocolCommand {
 
 #[test]
 fn test_protocol_command() {
-    let protocol_command = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string());
+    let (protocol_command, receiver) = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string());
     println!("{}", protocol_command);
 }
 
 #[test]
 fn test_protocol_command_traits() {
-    let protocol_command = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "".to_string());
+    let (protocol_command, receiver) = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "".to_string());
     println!("{}", protocol_command);
 }

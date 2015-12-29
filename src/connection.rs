@@ -5,9 +5,7 @@ use std::{thread, io, net, sync};
 
 use response::Response;
 use config::Config;
-use command::Command;
-
-use std::time::Duration;
+use command::{Command, HasData, HasResponse, ProtocolCommand};
 
 enum Status {
     Connected,
@@ -20,14 +18,14 @@ enum Error {
     DroppedConnection,
 }
 
-struct Connection {
+pub struct Connection<'a, T: HasData + HasResponse + Send +'static> {
     config: Config,
-    command_sender: Option<Sender<Command>>,
-    command_receiver: Option<Receiver<Command>>,
+    command_sender: Option<Sender<&'a T>>,
+    command_receiver: Option<Receiver<&'a T>>,
 }
 
-impl Connection {
-    fn new() -> Result<Connection, io::Error> {
+impl <'a, T: HasData + HasResponse + Send + 'static> Connection<'a, T> {
+    pub fn new() -> Result<Connection<'a, T>, io::Error> {
         let conn = Connection{
             config: Config::new(),
             command_sender: None,
@@ -36,11 +34,12 @@ impl Connection {
         return Ok(conn);
     }
 
-    fn handler(mut stream: TcpStream, receiver: Receiver<Command>, status_channel: Sender<Result<Status, Error>>) {
+    fn handler(mut stream: TcpStream, receiver: Receiver<&'a T>, status_channel: Sender<Result<Status, Error>>) {
         loop {
             match receiver.recv() {
                 Ok(command) => {
-                    //stream.write(&command.data());
+                    command.respond();
+                    stream.write(&command.data());
                     //stream.write(&command.bytes);
                 },
                 Err(e) => {
@@ -50,7 +49,7 @@ impl Connection {
         }
     }
 
-    pub fn send_command(&self, command: Command) -> Option<Error> {
+    pub fn send_command(&self, command: &'a T) -> Option<Error> {
         match self.command_sender {
             Some(ref sender) => {
                 sender.send(command);
@@ -63,8 +62,8 @@ impl Connection {
     pub fn start(&mut self) -> Receiver<Result<Status, Error>> {
         let ref config = self.config;
 
-        // initialize the sender/reciever channel for communication with the run loop
-        let (sender, receiver) = channel::<Command>();
+        // initialize the sender/reciever channel for command communication with the run loop
+        let (sender, receiver) = channel::<&'a T>();
         self.command_sender = Some(sender.clone());
 
         // statusSender is an optional channel which can allow clients to listen to error / status
@@ -96,8 +95,9 @@ fn it_works() {
     let mut c = Connection::new().unwrap();
     c.start();
 
-    let (command, responseChannel) = Command::version();
-    c.send_command(command);
-    let response = responseChannel.recv().unwrap();
-    println!("{}", response.t);
+    //let (command, responseChannel) = Command::version();
+    //c.send_command(&command);
+
+    //let (protocol_command, receiver) = ProtocolCommand::new("IDENTIFY".to_string(), "".to_string(), "{\"client_id\":\"test\"}".to_string());
+    //c.test(&protocol_command);
 }
