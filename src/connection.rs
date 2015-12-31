@@ -18,14 +18,14 @@ enum Error {
     DroppedConnection,
 }
 
-pub struct Connection<'a, T: HasData + HasResponse + Send +'static> {
+pub struct Connection<T: HasData + HasResponse +'static> {
     config: Config,
-    command_sender: Option<Sender<&'a T>>,
-    command_receiver: Option<Receiver<&'a T>>,
+    command_sender: Option<Sender<T>>,
+    command_receiver: Option<Receiver<T>>,
 }
 
-impl <'a, T: HasData + HasResponse + Send + 'static> Connection<'a, T> {
-    pub fn new() -> Result<Connection<'a, T>, io::Error> {
+impl <T: HasData + HasResponse + 'static> Connection<T> {
+    pub fn new() -> Result<Connection<T>, io::Error> {
         let conn = Connection{
             config: Config::new(),
             command_sender: None,
@@ -34,7 +34,7 @@ impl <'a, T: HasData + HasResponse + Send + 'static> Connection<'a, T> {
         return Ok(conn);
     }
 
-    fn handler(mut stream: TcpStream, receiver: Receiver<&'a T>, status_channel: Sender<Result<Status, Error>>) {
+    fn handler(mut stream: TcpStream, receiver: Receiver<T>, status_channel: Sender<Result<Status, Error>>) {
         loop {
             match receiver.recv() {
                 Ok(command) => {
@@ -49,7 +49,7 @@ impl <'a, T: HasData + HasResponse + Send + 'static> Connection<'a, T> {
         }
     }
 
-    pub fn send_command(&self, command: &'a T) -> Option<Error> {
+    pub fn send_command(&self, command: T) -> Option<Error> {
         match self.command_sender {
             Some(ref sender) => {
                 sender.send(command);
@@ -63,7 +63,7 @@ impl <'a, T: HasData + HasResponse + Send + 'static> Connection<'a, T> {
         let ref config = self.config;
 
         // initialize the sender/reciever channel for command communication with the run loop
-        let (sender, receiver) = channel::<&'a T>();
+        let (sender, receiver) = channel::<T>();
         self.command_sender = Some(sender.clone());
 
         // statusSender is an optional channel which can allow clients to listen to error / status

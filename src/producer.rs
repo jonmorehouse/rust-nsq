@@ -2,14 +2,13 @@ use config::{Config};
 use command::{ProtocolCommand, Command, HasData, HasResponse};
 use connection::{Connection};
 
-
 pub struct Producer {
     t: bool
 }
 
 impl Producer {
-    fn new(config: Config) -> Producer{
-        let c: Connection<Command> = Connection::new().unwrap();
+    fn  new(config: Config) -> Producer{
+        let c: Connection<T> = Connection::new().unwrap();
 
         // TODO: fill this in with a connection
         Producer {
@@ -38,8 +37,6 @@ impl Producer {
 
         true
     }
-
-
 }
 
 #[test]
